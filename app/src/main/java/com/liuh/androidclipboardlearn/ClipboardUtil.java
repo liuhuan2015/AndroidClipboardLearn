@@ -3,10 +3,12 @@ package com.liuh.androidclipboardlearn;
 import android.content.ClipData;
 import android.content.ClipDescription;
 import android.content.ClipboardManager;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Handler;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +40,7 @@ public class ClipboardUtil {
     private ClipboardManager.OnPrimaryClipChangedListener onPrimaryClipChangedListener = new ClipboardManager.OnPrimaryClipChangedListener() {
         @Override
         public void onPrimaryClipChanged() {
+            Log.e("---------", "---" + clipboardManager.getPrimaryClip().toString());
             mHandler.removeCallbacks(mRunnable);
             mHandler.postDelayed(mRunnable, THRESHOLD);
         }
@@ -46,6 +49,11 @@ public class ClipboardUtil {
     private ClipboardUtil(Context mContext) {
         this.mContext = mContext;
         clipboardManager = (ClipboardManager) mContext.getSystemService(Context.CLIPBOARD_SERVICE);
+
+        if (clipboardManager.hasPrimaryClip()) {
+            //如果剪贴板上面有数据
+            Log.e("^^^^^^^^^^^", clipboardManager.getPrimaryClip().toString());
+        }
         clipboardManager.addPrimaryClipChangedListener(onPrimaryClipChangedListener);
     }
 
@@ -106,6 +114,52 @@ public class ClipboardUtil {
         mOnPrimaryClipChangedListeners.remove(listener);
     }
 
+    public void copyUri(ContentResolver contentResolver, String label, Uri uri) {
+        ClipData clipData = ClipData.newUri(contentResolver, label, uri);
+        clipboardManager.setPrimaryClip(clipData);
+    }
+
+
+    /**
+     * 判断剪贴板内是否有数据
+     *
+     * @return
+     */
+    public boolean hasPrimaryClip() {
+        return clipboardManager.hasPrimaryClip();
+    }
+
+    public CharSequence coercePrimaryClipToText() {
+        if (!hasPrimaryClip()) {
+            return null;
+        }
+        return clipboardManager.getPrimaryClip().getItemAt(0).coerceToText(mContext);
+    }
+
+    /**
+     * 把多组数据放入剪贴板中，比如选中ListView中多个Item，并将Item的数据一起放进剪贴板
+     *
+     * @param label
+     * @param mimeType mimeType is one of them:{@link android.content.ClipDescription#MIMETYPE_TEXT_PLAIN},
+     *                 {@link android.content.ClipDescription#MIMETYPE_TEXT_HTML},
+     *                 {@link android.content.ClipDescription#MIMETYPE_TEXT_URILIST},
+     *                 {@link android.content.ClipDescription#MIMETYPE_TEXT_INTENT}.
+     * @param items    放进剪贴板的数据
+     */
+    public void copyMultiple(String label, String mimeType, List<ClipData.Item> items) {
+        if (items == null) {
+            throw new NullPointerException("items is null");
+        }
+
+        int size = items.size();
+
+        ClipData clipData = new ClipData(label, new String[]{mimeType}, items.get(0));
+        for (int i = 0; i < size; i++) {
+            clipData.addItem(items.get(i));
+        }
+        clipboardManager.setPrimaryClip(clipData);
+    }
+
 
     private class ClipboardRunnable implements Runnable {
 
@@ -122,6 +176,7 @@ public class ClipboardUtil {
      */
     public interface CustomOnPrimaryClipChangedListener {
         void onPrimaryClipChanged(ClipboardManager clipboardManager);
+
     }
 
 }
