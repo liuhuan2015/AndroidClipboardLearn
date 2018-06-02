@@ -26,7 +26,7 @@ public class ClipboardUtil {
     private static final String COPY_PATH = "/copy";
 
     private Context mContext;
-    private static final long THRESHOLD = 100;
+    private static final long THRESHOLD = 100;//阀值
     private Handler mHandler = new Handler();
 
     ClipboardManager clipboardManager;
@@ -41,6 +41,8 @@ public class ClipboardUtil {
         @Override
         public void onPrimaryClipChanged() {
             Log.e("---------", "---" + clipboardManager.getPrimaryClip().toString());
+            //按照原作者所说，这里的操作是为了在发生多次回调时，只保留最后一次回调，
+            //作者测得多次回调间隔不会超过9ms，而且只有最后一次的数据是完整的
             mHandler.removeCallbacks(mRunnable);
             mHandler.postDelayed(mRunnable, THRESHOLD);
         }
